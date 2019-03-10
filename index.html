@@ -1,0 +1,138 @@
+<!––
+Socket.IO messaging base functionality based off:
+
+Author(s) Name: N/A
+Date: 2019, January 02
+Title: Create a basic chat application
+Type: Source Code
+Web Address: https://socket.io/get-started/chat/
+––>
+<!doctype html>
+<html>
+  <head>
+    <title>Adams Messanger</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; background: #696969; }
+      form { background: #3D3D3D; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { background: #4B4B4B; border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: #52986C; border: none; padding: 10px; }
+      #messages { color: #7DA88D; list-style-type: none; margin: 0; padding: 0; width: 90%;}
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #575757; }
+	  #messages li:nth-child(even) { background: #505050; }
+	  #messages {display:inline-block; float: left; vertical-align: top;}
+	  #users {color: #7DA88D; list-style-type: none; margin: 0; padding: 0; width: 10%;}
+	  #users li { padding: 5px 10px; }
+	  #users li:nth-child(odd) { background: #505050; }
+	  #users li:nth-child(even) { background: #4B4B4B; }
+	  #users {display:inline-block; float: left; vertical-align: top;}	  
+    </style>
+  </head>
+  <script src="/socket.io/socket.io.js"></script>
+	<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+	<script>
+			var recieved_nick = 0;
+			var my_nickname = "None";
+			var my_id = 0;
+			
+		  $(function () 
+		  {
+			var socket = io();
+			$('form').submit(function(msg)
+			{
+			  msg.preventDefault();
+			  socket.emit('chat message', [my_nickname, $('#input').val(), my_id]);
+			  $('#input').val('');
+			  return false;
+			});
+			// Creates a new Message
+			socket.on('chat message', function(msg)
+			{	
+				if (msg[0] == "Everybody" || msg[0] == my_id)
+				{
+					message = msg[1];
+					message_user_id = msg[2];
+					message_color = msg[3];
+					
+					var ul = document.getElementById("messages");
+					var li = document.createElement("li");
+					
+					li.appendChild(document.createTextNode(message));
+					li.setAttribute("data-userid", "user" + message_user_id);
+					if (message_color != "none")
+					{
+						li.style.background = message_color;
+					}
+					
+					if (message_user_id == my_id)
+					{
+						li.style.textDecoration = "underline";
+					}
+					
+					ul.appendChild(li);	
+				}
+			});
+			socket.on('assign-name', function(name)
+			{
+				if (name[2] == my_id || my_nickname == "None")
+				{
+					if (recieved_nick == 0)
+					{
+						var text = "You are now communicating as: " + name[1];
+						my_nickname = name[1];
+						my_id = name[2];
+						
+						$('#messages').append($('<li>').text(text));
+						recieved_nick = 1;
+					}
+					else 
+					{
+						$('#messages').append($('<li>').text("You have just changed your name to: " + name[1]));
+						my_nickname = name[1];
+					}
+				}
+			});
+			socket.on('assign-color', function(msg)
+			{	
+				if (msg[0] == my_id)
+				{
+					$('#messages').append($('<li>').text("You have just changed your name color to: " + msg[2]));
+					
+					var elements = document.querySelectorAll('[data-userid="user' + my_id + '"]');
+					for (i in elements)
+					{
+						elements[i].style.background = msg[2];
+					}
+				}
+				else if (msg[0] == "Everybody")
+				{
+					$('#messages').append($('<li>').text(msg[3] + " Just changed his name color to: " + msg[2]));
+				
+					var elements = document.querySelectorAll('[data-userid="user' + msg[1] + '"]');
+					for (i in elements)
+					{
+						elements[i].style.background = msg[2];
+					}
+				}
+				
+			});
+			socket.on('update-users', function(list)
+			{
+				$('#users').children().remove();
+				for (var user in list)
+				{		
+					$('#users').append($('<li>').text(list[user]));
+				}
+			});
+		  });
+
+	</script>
+  <body>
+	<form action="">
+      <input id="input" autocomplete="off" /><button>Go</button>
+    </form>
+    <ul id="messages"></ul>
+	<ul id="users"></ul>
+  </body>
+</html>
